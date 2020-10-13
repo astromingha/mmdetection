@@ -13,14 +13,14 @@ from mmdet import __version__
 from mmdet.apis import get_root_logger, set_random_seed, train_detector
 from mmdet.datasets import build_dataset
 from mmdet.models import build_detector
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
-    parser.add_argument('config', help='train config file path', default="/home/user/Work/mmdetection_jejusandbox/configs/cascade_mask_rcnn_x101_64x4d_fpn_1x.py")
-    parser.add_argument('--work_dir', help='the dir to save logs and models')
+    parser.add_argument('--config', help='train config file path', default="/home/user/Work/mmdetection_jejusandbox/configs/cascade_mask_rcnn_demo.py")
+    parser.add_argument('--work_dir', help='the dir to save logs and models',default='./log')
     parser.add_argument(
-        '--resume_from', help='the checkpoint file to resume from', default="checkpoints/cascade_mask_rcnn_x101_64x4d_fpn_1x_20190501-827e0a70.pth")
+        '--resume_from', help='the checkpoint file to resume from', default="/media/user/0745d36b-0cb3-4da0-b8f5-e0005b1ec0df/Work/2_Jeju_sandbox20/mmdetection/checkpoints/cascade_mask_rcnn_x101_64x4d_fpn_1x_20190501-827e0a70.pth")
     parser.add_argument(
         '--validate',
         action='store_true',

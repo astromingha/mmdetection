@@ -1,5 +1,5 @@
-log_dir = 'logs_aug/20200415_020623.log'
-train_iter = 400 #200(cascade MRCNN)
+log_dir = 'log/20200923_152615.log'#'logs_aug/20200415_020623.log'
+train_iter = 131#400 #200(cascade MRCNN)
 model = "cascade"
 
 import matplotlib.pyplot as plt
