@@ -5,7 +5,7 @@ import numpy as np
 import pycocotools.mask as maskUtils
 
 from ..registry import PIPELINES
-
+from mmdet.datasets.imgprocess import imgRotation
 
 @PIPELINES.register_module
 class LoadImageFromFile(object):
@@ -20,7 +20,11 @@ class LoadImageFromFile(object):
                                 results['img_info']['filename'])
         else:
             filename = results['img_info']['filename']
-        img = mmcv.imread(filename, self.color_type)
+        # img = mmcv.imread(filename, self.color_type)
+
+        # restore orientation
+        img = imgRotation(filename)
+
         if self.to_float32:
             img = img.astype(np.float32)
         results['filename'] = filename

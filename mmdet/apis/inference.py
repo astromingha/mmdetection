@@ -11,7 +11,7 @@ from mmcv.runner import load_checkpoint
 from mmdet.core import get_classes
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
-
+from mmdet.datasets.imgprocess import imgRotation
 
 def init_detector(config, checkpoint=None, device='cuda:0'):
     """Initialize a detector from config file.
@@ -32,10 +32,11 @@ def init_detector(config, checkpoint=None, device='cuda:0'):
                         'but got {}'.format(type(config)))
     config.model.pretrained = None
     model = build_detector(config.model, test_cfg=config.test_cfg)
+    test =0
     if checkpoint is not None:
         checkpoint = load_checkpoint(model, checkpoint)
         if 'CLASSES' in checkpoint['meta']:
-            model.CLASSES = checkpoint['meta']['CLASSES']
+            model.CLASSES = ('Fire','Smoke','Car','Building','Person','Cemetery')#checkpoint['meta']['CLASSES']
         else:
             warnings.warn('Class names are not saved in the checkpoint\'s '
                           'meta data, use COCO classes by default.')
@@ -47,18 +48,62 @@ def init_detector(config, checkpoint=None, device='cuda:0'):
 
 
 class LoadImage(object):
-
     def __call__(self, results):
         if isinstance(results['img'], str):
             results['filename'] = results['img']
         else:
             results['filename'] = None
-        img = mmcv.imread(results['img'])
+        # img = mmcv.imread(results['img'])
+        img = results['img']
+        # restore orientation
+        # img = imgRotation(results['img'])
+
         results['img'] = img
         results['img_shape'] = img.shape
         results['ori_shape'] = img.shape
         return results
 
+class LoadImage_Demo(object):
+    def __call__(self, results):
+        if isinstance(results['img'], str):
+            results['filename'] = results['img']
+        else:
+            results['filename'] = None
+        # img = mmcv.imread(results['img'])
+        # img = results['img']
+        # restore orientation
+        img = imgRotation(results['img'])
+
+        results['img'] = img
+        results['img_shape'] = img.shape
+        results['ori_shape'] = img.shape
+        return results
+
+def inference_detector_Demo(model, img):
+    """Inference image(s) with the detector.
+
+    Args:
+        model (nn.Module): The loaded detector.
+        imgs (str/ndarray or list[str/ndarray]): Either image files or loaded
+            images.
+
+    Returns:
+        If imgs is a str, a generator will be returned, otherwise return the
+        detection results directly.
+    """
+    cfg = model.cfg
+    device = next(model.parameters()).device  # model device
+    # build the data pipeline
+    test_pipeline = [LoadImage_Demo()] + cfg.data.test.pipeline[1:]
+    test_pipeline = Compose(test_pipeline)
+    # prepare data
+    data = dict(img=img)
+    data = test_pipeline(data) # add img_meta
+    data = scatter(collate([data], samples_per_gpu=1), [device])[0]
+    # forward the model
+    with torch.no_grad():
+        result = model(return_loss=False, rescale=True, **data)
+    return result
 
 def inference_detector(model, img):
     """Inference image(s) with the detector.
@@ -79,7 +124,7 @@ def inference_detector(model, img):
     test_pipeline = Compose(test_pipeline)
     # prepare data
     data = dict(img=img)
-    data = test_pipeline(data)
+    data = test_pipeline(data) # add img_meta
     data = scatter(collate([data], samples_per_gpu=1), [device])[0]
     # forward the model
     with torch.no_grad():
@@ -140,8 +185,10 @@ def show_result(img,
         np.ndarray or None: If neither `show` nor `out_file` is specified, the
             visualized image is returned, otherwise None is returned.
     """
+
     assert isinstance(class_names, (tuple, list))
-    img = mmcv.imread(img)
+    # img = mmcv.imread(img)
+    img = imgRotation(img)
     img = img.copy()
     if isinstance(result, tuple):
         bbox_result, segm_result = result
@@ -174,6 +221,8 @@ def show_result(img,
         labels,
         class_names=class_names,
         score_thr=score_thr,
+        thickness=1,
+        font_scale=1,
         show=show,
         wait_time=wait_time,
         out_file=out_file)
@@ -185,7 +234,8 @@ def show_result_pyplot(img,
                        result,
                        class_names,
                        score_thr=0.3,
-                       fig_size=(15, 10)):
+                       fig_size=(15, 10),
+                       out=None):
     """Visualize the detection results on the image.
 
     Args:
@@ -199,6 +249,9 @@ def show_result_pyplot(img,
             be written to the out file instead of shown in a window.
     """
     img = show_result(
-        img, result, class_names, score_thr=score_thr, show=False)
+        img, result, class_names, score_thr=score_thr, show=False,out_file=out)
     plt.figure(figsize=fig_size)
-    plt.imshow(mmcv.bgr2rgb(img))
+
+    # plt.imshow(img)
+    # plt.imshow(mmcv.bgr2rgb(img))
+    #plt.show()
