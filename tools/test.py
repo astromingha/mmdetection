@@ -14,7 +14,7 @@ from mmcv.runner import get_dist_info, init_dist, load_checkpoint
 from mmdet.core import coco_eval, results2json, wrap_fp16_model
 from mmdet.datasets import build_dataloader, build_dataset
 from mmdet.models import build_detector
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def single_gpu_test(model, data_loader, show=False):
     model.eval()
@@ -155,11 +155,12 @@ def collect_results_gpu(result_part, size):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
-    parser.add_argument('--out', help='output result file')
+    parser.add_argument('--config', help='test config file path', default='../configs/cascade_mask_rcnn_x101_64x4d_fpn_1x.py')#'../configs/cascade_mask_rcnn_x101_64x4d_fpn_1x.py')
+    parser.add_argument('--checkpoint', help='checkpoint file', default='../../../Dataset/Seoulchallenge/test_0226/best_log/epoch_41.pth') #epoch_46.pth")#epoch_38.pth") #s2.acc.max=ep35,loss.max=ep25
+    parser.add_argument('--out', help='output result file',default="results.pkl")
     parser.add_argument(
         '--json_out',
+        default='ddddd',
         help='output result file name without extension',
         type=str)
     parser.add_argument(
@@ -167,8 +168,8 @@ def parse_args():
         type=str,
         nargs='+',
         choices=['proposal', 'proposal_fast', 'bbox', 'segm', 'keypoints'],
-        help='eval types')
-    parser.add_argument('--show', action='store_true', help='show results')
+        help='eval types',default=["bbox"])
+    parser.add_argument('--show', action='store_true', help='show results', default=False)
     parser.add_argument(
         '--gpu_collect',
         action='store_true',
@@ -205,6 +206,9 @@ def main():
         torch.backends.cudnn.benchmark = True
     cfg.model.pretrained = None
     cfg.data.test.test_mode = True
+
+    cfg.data.val.pipeline = cfg.test_pipeline
+    cfg.data.test.pipeline = cfg.test_pipeline
 
     # init distributed env first, since logger depends on the dist info.
     if args.launcher == 'none':
@@ -255,7 +259,7 @@ def main():
                 result_file = args.out
                 coco_eval(result_file, eval_types, dataset.coco)
             else:
-                if not isinstance(outputs[0], dict):
+                if not isinstance(outputs[0], dict): ##
                     result_files = results2json(dataset, outputs, args.out)
                     coco_eval(result_files, eval_types, dataset.coco)
                 else:

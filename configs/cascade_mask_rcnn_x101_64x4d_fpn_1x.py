@@ -1,4 +1,4 @@
-custom_class_nums = 1+6
+custom_class_nums = 2+1#1+6
 # model settings
 model = dict(
     type='CascadeRCNN',
@@ -180,7 +180,7 @@ test_cfg = dict(
         mask_thr_binary=0.5))
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = '/home/user/Dataset/Seoulchallenge/test_0410_aug/'#'/home/user/Dataset/Visdrone/viscoco19_class6/'
+data_root = '/home/dkc/dataset_tem/knps/demo_coco/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
@@ -256,10 +256,11 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-total_epochs = 100
+total_epochs = 200
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/cascade_mask_rcnn_x101_64x4d_fpn_1x'
 load_from = None
 resume_from = None
 workflow = [('train', 1), ('val', 1)]
+# workflow = [('train', 1)]

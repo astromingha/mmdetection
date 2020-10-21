@@ -1,0 +1,19 @@
+<!doctype html>
+    <title>Innopam Inference Test Server</title>
+    <h1><img src="{{url_for('static',filename=image_file)}}" width="300" height="120" hspace="50"></h1>
+
+<form action="" method=post enctype=multipart/form-data>
+<!--    <select name= "method">-->
+<!--    {% for method in methods %}-->
+<!--    <option value= "{{method}}" SELECTED>{{ method }}</option>"-->
+<!--    {% endfor %}-->
+<!--    </select>-->
+    <div class="form-group">
+        <select class="form-control" id="method" name="method">
+            <option selected>Detection</option>
+            <option>Segmentation</option>
+        </select>
+        <input type=file name=file>
+        <input type=submit value=Upload>
+    </div>
+</form>

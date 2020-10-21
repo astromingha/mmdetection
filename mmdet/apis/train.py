@@ -16,6 +16,7 @@ from mmdet.models import RPN
 from mmdet.utils import get_root_logger
 
 
+
 def set_random_seed(seed, deterministic=False):
     """Set random seed.
 
@@ -272,7 +273,10 @@ def _non_dist_train(model,
             dist=False) for ds in dataset
     ]
     # put model on gpus
-    model = MMDataParallel(model, device_ids=range(cfg.gpus)).cuda()
+    model = MMDataParallel(model).cuda()
+
+
+
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
@@ -294,4 +298,14 @@ def _non_dist_train(model,
         runner.resume(cfg.resume_from)
     elif cfg.load_from:
         runner.load_checkpoint(cfg.load_from)
+
+    # #############################################################
+    #
+    # # runner.load_state_dict(torch.load(
+    # #     "/home/user/Work/mmdetection_jejuai/tools/logs/epoch_41.pth"))
+    # input_np = np.random.uniform(0, 1, (1, 1, 1333, 800))
+    # input_var = Variable(torch.FloatTensor(input_np))
+    # k_model = pytorch_to_keras(runner.model, input_var, [(1, 1333, 800,)], verbose=True)
+    #
+    # ##############################################################
     runner.run(data_loaders, cfg.workflow, cfg.total_epochs)

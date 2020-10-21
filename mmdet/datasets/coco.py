@@ -23,7 +23,8 @@ class CocoDataset(CustomDataset):
     #            'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock',
     #            'vase', 'scissors', 'teddy_bear', 'hair_drier', 'toothbrush')
     # CLASSES = ('fire','smoke','car','building','person','cemetery')
-    CLASSES = ('fire','smoke','car','building','person','cemetery')
+    #CLASSES = ('fire','smoke','car','building','person','cemetery')
+    CLASSES = ('seaweed','pine')
 
     def load_annotations(self, ann_file):
         self.coco = COCO(ann_file)
@@ -53,11 +54,10 @@ class CocoDataset(CustomDataset):
         for i, img_info in enumerate(self.img_infos):
             if self.filter_empty_gt and self.img_ids[i] not in ids_with_ann:
                 continue
-            try:
-                if min(img_info['width'], img_info['height']) >= min_size:
-                    valid_inds.append(i)
-            except KeyError:
-                test = 0
+
+            if min(img_info['width'], img_info['height']) >= min_size:
+                valid_inds.append(i)
+
         return valid_inds
 
     def _parse_ann_info(self, img_info, ann_info):

@@ -14,21 +14,21 @@ import numpy as np
 import mmcv
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-IMAGE_DIR = '/home/user/demo_30'
-Save_IMAGE_DIR = '/home/user/demo_30/infer'
-save_inferanno_dir = '/home/user/Dataset/Seoulchallenge/paper_0429/OD_infer'
-config_file = '../configs/cascade_mask_rcnn_demo.py'
+IMAGE_DIR = '/home/dkc/dataset_tem/knps/demo_coco/images/val2017'
+Save_IMAGE_DIR = './inference_result_train'
+save_inferanno_dir = './inference_miou_val'
+config_file = '../configs/cascade_mask_rcnn_x101_64x4d_fpn_1x.py'
 # download the checkpoint from model zoo and put it in `checkpoints/`
-checkpoint_file = "log/epoch_43.pth" #epoch_68.pth"
+checkpoint_file = "logs/epoch_100.pth" #epoch_68.pth"
 
 
-show = 1
-makemAPtxt = 0
+show = 0
+makemAPtxt = 1
 save_inferpic = 1
 
 # build the model from a config file and a checkpoint file
 model = init_detector(config_file, checkpoint_file, device='cuda:0')
-CLASSES = ('Ocean','Land','car','building','person','trash')### 1.Ocean 2.Land 3.car 4.building 5.person. 6.trash
+CLASSES = ('B','T')
 cfg = mmcv.Config.fromfile(config_file)
 model.cfg.data.val.pipeline = cfg.test_pipeline
 model.cfg.data.test.pipeline = cfg.test_pipeline
@@ -36,9 +36,10 @@ model.cfg.data.test.pipeline = cfg.test_pipeline
 # test a single image
 if not (os.path.isdir(save_inferanno_dir)):
     os.makedirs(save_inferanno_dir)
+if not (os.path.isdir(Save_IMAGE_DIR)):
+    os.makedirs(Save_IMAGE_DIR)
 
-
-filenames = [i for i in os.listdir(IMAGE_DIR) if '.jpg' in i.lower() or '.png' in i.lower()]
+filenames = os.listdir(IMAGE_DIR)
 for filename in filenames:
     file_dir = os.path.join(IMAGE_DIR, filename)
 

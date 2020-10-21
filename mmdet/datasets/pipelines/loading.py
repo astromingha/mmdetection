@@ -20,10 +20,10 @@ class LoadImageFromFile(object):
                                 results['img_info']['filename'])
         else:
             filename = results['img_info']['filename']
-        # img = mmcv.imread(filename, self.color_type)
+        img = mmcv.imread(filename, self.color_type)
 
         # restore orientation
-        img = imgRotation(filename)
+        #img = imgRotation(filename)
 
         if self.to_float32:
             img = img.astype(np.float32)

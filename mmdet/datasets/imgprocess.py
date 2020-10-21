@@ -1,41 +1,9 @@
 import cv2
 from PIL import Image
 import numpy as np
-from skimage import measure
 from PIL.ExifTags import TAGS, GPSTAGS
-
-def close_contour(contour):
-    if not np.array_equal(contour[0], contour[-1]):
-        contour = np.vstack((contour, contour[0]))
-    return contour
-
-def binary_mask_to_polygon(binary_mask, tolerance=2):
-    """Converts a binary mask to COCO polygon representation
-
-    Args:
-        binary_mask: a 2D binary numpy array where '1's represent the object
-        tolerance: Maximum distance from original points of polygon to approximated
-            polygonal chain. If tolerance is 0, the original coordinate array is returned.
-
-    """
-    polygons = []
-    # pad mask to close contours of shapes which start and end at an edge
-    padded_binary_mask = np.pad(binary_mask, pad_width=1, mode='constant', constant_values=0)
-    contours = measure.find_contours(padded_binary_mask, 0.5)
-    contours = np.subtract(contours, 1)
-    for contour in contours:
-        contour = close_contour(contour)
-        contour = measure.approximate_polygon(contour, tolerance)
-        if len(contour) < 3:
-            continue
-        contour = np.flip(contour, axis=1)
-        segmentation = contour.ravel().tolist()
-        # after padding and subtracting 1 we may get -0.5 points in our segmentation
-        segmentation = [0 if i < 0 else i for i in segmentation]
-        polygons.append(segmentation)
-
-    return polygons
-
+import pycocotools.mask as maskUtils
+import mmcv
 def getExif(path):
     src_image = Image.open(path)
     info = src_image._getexif()
@@ -146,172 +114,11 @@ def restoreVertices(bbox,ori): #dict = [x1_batch,y1_batch,x2_batch,y2_batch,clas
 
     return [X1_batch,Y1_batch,X2_batch,Y2_batch,bbox[4]]
 
-import mmcv
-import pycocotools.mask as maskUtils
 
-def server_det_masks(result,
-                class_names,
-                score_thr=0.3,
-                wait_time=0,
-                show=True,
-                out_file=None):
-    assert isinstance(class_names, (tuple, list))
-    # img = mmcv.imread(img)
-    # img = imgRotation(img)
-    # img = img.copy()
-    if isinstance(result, tuple):
-        bbox_result, segm_result = result
-    else:
-        bbox_result, segm_result = result, None
-    bboxes = np.vstack(bbox_result)
-    labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32)
-        for i, bbox in enumerate(bbox_result)
-    ]
-    labels = np.concatenate(labels)
-    polygons,plabels = [],[]
-    # draw segmentation masks
-    if segm_result is not None and len(labels) > 0:
-        segms = mmcv.concat_list(segm_result)
-        inds = np.where(bboxes[:, -1] > score_thr)[0]
-        np.random.seed(42)
-        color_masks = [
-            np.random.randint(0, 256, (1, 3), dtype=np.uint8)
-            for _ in range(max(labels) + 1)
-        ]
-
-        for i in inds:
-            i = int(i)
-            color_mask = color_masks[labels[i]]
-            mask = maskUtils.decode(segms[i]).astype(np.bool)
-            poly = [int(j) for j in binary_mask_to_polygon(mask)[0]]
-            obj_class = int(labels[i])+1
-            if obj_class == 3 or obj_class == 4 or obj_class == 5:
-                obj_class -= 2
-            else:
-                continue
-            polygons.append(poly + [obj_class])
-
-            # plabels.append(labels[i].tolist())
-            # img[mask] = img[mask] * 0.5 + color_mask * 0.5
-        test = 0
-    return polygons#, plabels
-    # draw bounding boxes
-def server_det_masks_demo(result,
-                class_names,
-                score_thr=0.3,
-                wait_time=0,
-                show=True,
-                out_file=None):
-    assert isinstance(class_names, (tuple, list))
-    # img = mmcv.imread(img)
-    # img = imgRotation(img)
-    # img = img.copy()
-    if isinstance(result, tuple):
-        bbox_result, segm_result = result
-    else:
-        bbox_result, segm_result = result, None
-    bboxes = np.vstack(bbox_result)
-    labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32)
-        for i, bbox in enumerate(bbox_result)
-    ]
-    labels = np.concatenate(labels)
-    polygons,plabels = [],[]
-    # draw segmentation masks
-    if segm_result is not None and len(labels) > 0:
-        segms = mmcv.concat_list(segm_result)
-        inds = np.where(bboxes[:, -1] > score_thr)[0]
-        np.random.seed(42)
-        color_masks = [
-            np.random.randint(0, 256, (1, 3), dtype=np.uint8)
-            for _ in range(max(labels) + 1)
-        ]
-
-        for i in inds:
-            i = int(i)
-            color_mask = color_masks[labels[i]]
-            mask = maskUtils.decode(segms[i]).astype(np.bool)
-            poly = [int(j) for j in binary_mask_to_polygon(mask)[0]]
-            obj_class = int(labels[i])+1
-            if obj_class == 3 or obj_class == 4 or obj_class == 5 or obj_class ==6:
-                obj_class -= 2
-            else:
-                continue
-            polygons.append(poly + [obj_class])
-
-            # plabels.append(labels[i].tolist())
-            # img[mask] = img[mask] * 0.5 + color_mask * 0.5
-        test = 0
-    return polygons#, plabels
-
-# def server_det_bboxes(bboxes,
-#                       labels,
-#                       class_names=None,
-#                       score_thr=0):  # ,
-#     # bbox_color='green',
-#     # text_color='green',
-#     # thickness=1,
-#     # font_scale=0.5,
-#     # show=True,
-#     # win_name='',
-#     # wait_time=0,
-#     # out_file=None):
-#     """Draw bboxes and class labels (with scores) on an image.
-#
-#     Args:
-#         img (str or ndarray): The image to be displayed.
-#         bboxes (ndarray): Bounding boxes (with scores), shaped (n, 4) or
-#             (n, 5).
-#         labels (ndarray): Labels of bboxes.
-#         class_names (list[str]): Names of each classes.
-#         score_thr (float): Minimum score of bboxes to be shown.
-#         bbox_color (str or tuple or :obj:`Color`): Color of bbox lines.
-#         text_color (str or tuple or :obj:`Color`): Color of texts.
-#         thickness (int): Thickness of lines.
-#         font_scale (float): Font scales of texts.
-#         show (bool): Whether to show the image.
-#         win_name (str): The window name.
-#         wait_time (int): Value of waitKey param.
-#         out_file (str or None): The filename to write the image.
-#     """
-#     assert bboxes.ndim == 2
-#     assert labels.ndim == 1
-#     assert bboxes.shape[0] == labels.shape[0]
-#     assert bboxes.shape[1] == 4 or bboxes.shape[1] == 5
-#     # img = imread(img)
-#
-#     if score_thr > 0:
-#         assert bboxes.shape[1] == 5
-#         scores = bboxes[:, -1]
-#         inds = scores > score_thr
-#         bboxes = bboxes[inds, :]
-#         labels = labels[inds]
-#
-#     return bboxes, labels
-
-    # bbox_color = color_val(bbox_color)
-    # text_color = color_val(text_color)
-    #
-    # for bbox, label in zip(bboxes, labels):
-    #     bbox_int = bbox.astype(np.int32)
-    #     left_top = (bbox_int[0], bbox_int[1])
-    #     right_bottom = (bbox_int[2], bbox_int[3])
-    #     cv2.rectangle(
-    #         img, left_top, right_bottom, bbox_color, thickness=thickness)
-    #     label_text = class_names[
-    #         label] if class_names is not None else 'cls {}'.format(label)
-    #     if len(bbox) > 4:
-    #         label_text += '|{:.02f}'.format(bbox[-1])
-    #     cv2.putText(img, label_text, (bbox_int[0], bbox_int[1] - 2),
-    #                 cv2.FONT_HERSHEY_COMPLEX, font_scale, text_color)
-
-
-
-
-def server_det_bboxes(result,
+def server_det_bboxes(bboxes,
+                      labels,
                       class_names=None,
-                      score_thr=0):  # ,
+                      score_thr=0.5):  # ,
     # bbox_color='green',
     # text_color='green',
     # thickness=1,
@@ -338,18 +145,6 @@ def server_det_bboxes(result,
         wait_time (int): Value of waitKey param.
         out_file (str or None): The filename to write the image.
     """
-    if isinstance(result, tuple):
-        bbox_result, _ = result  # bbox_result, segm_result
-    else:
-        bbox_result, segm_result = result, None
-
-    bboxes = np.vstack(bbox_result)
-    labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32)
-        for i, bbox in enumerate(bbox_result)
-    ]
-    labels = np.concatenate(labels)
-
     assert bboxes.ndim == 2
     assert labels.ndim == 1
     assert bboxes.shape[0] == labels.shape[0]
@@ -363,26 +158,100 @@ def server_det_bboxes(result,
         bboxes = bboxes[inds, :]
         labels = labels[inds]
 
-    test = 0
-    object_coords = []
-    for bbox, label in zip(bboxes,labels):
-        bbox_int = bbox.astype(np.int32)
-        x1 = bbox_int[0]
-        y1 = bbox_int[1]
-        x2 = bbox_int[2]
-        y2 = bbox_int[3]
-        obj_class = int(label)+1
+    return bboxes, labels
 
-        # sandbox label## revise
-        if obj_class == 3 or obj_class == 4 or obj_class == 5:
-            obj_class -= 2
-        else:
-            continue
-        # object_coords.append(bbox_int.tolist())
-        object_coords.append([x1, y1, x2, y1, x2, y2, x1, y2, obj_class])
+    # bbox_color = color_val(bbox_color)
+    # text_color = color_val(text_color)
+    #
+    # for bbox, label in zip(bboxes, labels):
+    #     bbox_int = bbox.astype(np.int32)
+    #     left_top = (bbox_int[0], bbox_int[1])
+    #     right_bottom = (bbox_int[2], bbox_int[3])
+    #     cv2.rectangle(
+    #         img, left_top, right_bottom, bbox_color, thickness=thickness)
+    #     label_text = class_names[
+    #         label] if class_names is not None else 'cls {}'.format(label)
+    #     if len(bbox) > 4:
+    #         label_text += '|{:.02f}'.format(bbox[-1])
+    #     cv2.putText(img, label_text, (bbox_int[0], bbox_int[1] - 2),
+    #                 cv2.FONT_HERSHEY_COMPLEX, font_scale, text_color)
 
 
 
-    return object_coords
+def show_results_selected(img,
+                result,
+                class_names,
+                segmentation,
+                score_thr=0.5,
+                wait_time=0,
+                show=False,
+                out_file=None):
+    """Visualize the detection results on the image.
+
+    Args:
+        img (str or np.ndarray): Image filename or loaded image.
+        result (tuple[list] or list): The detection result, can be either
+            (bbox, segm) or just bbox.
+        class_names (list[str] or tuple[str]): A list of class names.
+        score_thr (float): The threshold to visualize the bboxes and masks.
+        wait_time (int): Value of waitKey param.
+        show (bool, optional): Whether to show the image with opencv or not.
+        out_file (str, optional): If specified, the visualization result will
+            be written to the out file instead of shown in a window.
+
+    Returns:
+        np.ndarray or None: If neither `show` nor `out_file` is specified, the
+            visualized image is returned, otherwise None is returned.
+    """
+
+    assert isinstance(class_names, (tuple, list))
+    # img = mmcv.imread(img)
+    # img = imgRotation(img)
+    img = img.copy()
+    if isinstance(result, tuple):
+        bbox_result, segm_result = result
+    else:
+        bbox_result, segm_result = result, None
+    bboxes = np.vstack(bbox_result)
+    labels = [
+        np.full(bbox.shape[0], i, dtype=np.int32)
+        for i, bbox in enumerate(bbox_result)
+    ]
+    labels = np.concatenate(labels)
+    # draw segmentation masks
+    if segmentation:
+        if segm_result is not None and len(labels) > 0:
+            segms = mmcv.concat_list(segm_result)
+            inds = np.where(bboxes[:, -1] > score_thr)[0]
+            np.random.seed(42)
+            color_masks = [
+                np.random.randint(0, 256, (1, 3), dtype=np.uint8)
+                for _ in range(max(labels) + 1)
+            ]
+            for i in inds:
+                i = int(i)
+                color_mask = color_masks[labels[i]]
+                mask = maskUtils.decode(segms[i]).astype(np.bool)
+                img[mask] = img[mask] * 0.5 + color_mask * 0.5
+
+        # draw bounding boxes
+    mmcv.imshow_det_bboxes(
+        img,
+        bboxes,
+        labels,
+        class_names=class_names,
+        score_thr=score_thr,
+        bbox_color='green',
+        text_color='green',
+        thickness=10,#1,
+        font_scale=2,#1,
+        show=show,
+        wait_time=wait_time,
+        out_file=out_file)
+
+
+    if not (show or out_file):
+        return img
+
 
 
