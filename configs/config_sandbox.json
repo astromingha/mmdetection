@@ -1,0 +1,21 @@
+{
+  "server": {
+    "PORT": 9190,
+    "QUEUE_LIMIT": 5
+  },
+  "client": {
+    "IP": "192.168.0.24",
+    "PORT": 47821,
+    "NoC": 4
+  },
+  "processing": {
+    "pre_calibrated": "False",
+    "threshold_angle": 20,
+    "ground_height": 0.0,
+    "gsd": 0
+  },
+  "config_file":"configs/Seoulchallenge_class6_config.py",
+  "checkpoint_file":"configs/Seoulchallenge_class6_epoch_41.pth",
+  "score_thr": 0.7,
+  "CLASSES" : ["A", "B", "C", "D", "E","F"]
+}

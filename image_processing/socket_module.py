@@ -8,6 +8,16 @@ import cv2
 import time
 from logger.logger import logger
 
+def recvall(sock,datalength):
+    buf = b''
+    count = datalength
+    while count:
+        newbuf = sock.recv(count)
+        if not newbuf: return None
+        buf += newbuf
+        count -= len(newbuf)
+    return buf
+
 # https://stackoverflow.com/questions/55014710/zero-fill-right-shift-in-python
 def zero_fill_right_shift(val, n):
     return (val >> n) if val >= 0 else ((val + 0x100000000) >> n)
@@ -32,52 +42,29 @@ def parse_header(binary_header):
 
 
 def receive(c_sock):
-    binaryHeader = c_sock.recv(2)  # Read the length of header
-    if binaryHeader == b"":
-        return
-    packetHeader = parse_header(binaryHeader)
-    timeStamp = c_sock.recv(8)
-    timeStamp = np.frombuffer(timeStamp, dtype="int64")[0]
-    payloadLength = c_sock.recv(4)
-    payloadLength = np.frombuffer(payloadLength, dtype="int32")[0]
+    headersize = 2
+    binaryHeader = c_sock.recv(headersize)  # Read the length of header
 
-    # https://docs.python.org/ko/3/library/uuid.html
-    taskID = c_sock.recv(16)
-    taskID = uuid.UUID(bytes=taskID)
-    frameID = c_sock.recv(16)
-    frameID = uuid.UUID(bytes=frameID)
-    latitude = c_sock.recv(8)
-    latitude = np.frombuffer(latitude, dtype="double")[0]
-    longitude = c_sock.recv(8)
-    longitude = np.frombuffer(longitude, dtype="double")[0]
-    altitude = c_sock.recv(4)
-    altitude = np.frombuffer(altitude, dtype="float32")[0]
-    accuracy = c_sock.recv(4)
-    accuracy = np.frombuffer(accuracy, dtype="float32")[0]
-    jsonDataSize = c_sock.recv(4)
-    jsonDataSize = np.frombuffer(jsonDataSize, dtype="int32")[0]
+    while True:
+        if parse_header(binaryHeader) == [1, 17, 34, 68, 1089, 17424]:
+            temp = c_sock.recv(12)
+            timeStamp, payloadLength = unpack('<QI', temp)
+            imageHeaderLength = 14
+            payloadLength -= imageHeaderLength
 
-    jsonData = c_sock.recv(jsonDataSize)    # binary
-    # https://stackoverflow.com/questions/40059654/python-convert-a-bytes-array-into-json-format
-    my_json = jsonData.decode('utf8').replace("'", '"')
-    # Load the JSON to a Python list & dump it back out as formatted JSON
-    data = json.loads(my_json)
+            payload1 = recvall(c_sock, 60)
+            taskID, frameID, latitude, longitude, altitude, accuracy, jsonDataSize = unpack('<16s16sddffI', payload1)
 
-    # jsonObject
-    imageBinaryLength = c_sock.recv(4)
-    imageBinaryLength = np.frombuffer(imageBinaryLength, dtype="int32")[0]
+            jsonData = recvall(c_sock, jsonDataSize)
+            imageBytes = recvall(c_sock, unpack('<I', c_sock.recv(4))[0])
 
-    byteBuff = b''
-    while len(byteBuff) < imageBinaryLength:
-        byteBuff += c_sock.recv(imageBinaryLength - len(byteBuff))
-    # nparr = np.frombuffer(byteBuff, dtype="uint8")
-    # imgdecode = cv2.imdecode(nparr, 1)
-    nparr = cv2.imdecode(np.fromstring(byteBuff, dtype='uint8'), 1) #np.frombuffer(byteBuff, dtype="uint8")
-    if len(byteBuff) == 0:
-        return
+            taskID = uuid.UUID(bytes=taskID)
+            frameID = uuid.UUID(bytes=frameID)
+            my_json = jsonData.decode('utf8').replace("'", '"')
+            data = json.loads(my_json)
+            nparr = cv2.imdecode(np.fromstring(imageBytes, dtype='uint8'), 1)
 
-    return taskID, frameID, latitude, longitude, altitude, \
-           data["roll"], data["pitch"], data["yaw"], data["exif"]["Model"], nparr
+            return taskID, frameID, latitude, longitude, altitude, data["roll"], data["pitch"], data["yaw"], data["exif"]["Model"], nparr
 
 
 def send(frame_id, task_id, name, img_type, img_boundary, objects, orthophoto, client):

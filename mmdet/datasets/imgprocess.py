@@ -197,6 +197,7 @@ def server_det_masks(result,
         test = 0
     return polygons#, plabels
     # draw bounding boxes
+
 def server_det_masks_demo(result,
                 class_names,
                 score_thr=0.3,
@@ -306,12 +307,7 @@ def server_det_masks_demo(result,
     #     cv2.putText(img, label_text, (bbox_int[0], bbox_int[1] - 2),
     #                 cv2.FONT_HERSHEY_COMPLEX, font_scale, text_color)
 
-
-
-
-def server_det_bboxes(result,
-                      class_names=None,
-                      score_thr=0):  # ,
+def server_det_bboxes(result, score_thr=0):
     # bbox_color='green',
     # text_color='green',
     # thickness=1,

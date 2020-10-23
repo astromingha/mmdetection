@@ -15,7 +15,7 @@ from Cython.Build import cythonize  # noqa: E402, isort:skip
 
 
 def readme():
-    with open('Build.md', encoding='utf-8') as f:
+    with open('Build.txt', encoding='utf-8') as f:
         content = f.read()
     return content
 

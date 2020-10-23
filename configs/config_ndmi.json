@@ -1,0 +1,21 @@
+{
+  "server": {
+    "PORT": 9191,
+    "QUEUE_LIMIT": 5
+  },
+  "client": {
+    "IP": "192.168.0.24",
+    "PORT": 57822,
+    "NoC": 4
+  },
+  "processing": {
+    "pre_calibrated": "False",
+    "threshold_angle": 20,
+    "ground_height": 0.0,
+    "gsd": 0
+  },
+  "config_file":"configs/ndmi_class3_config.py",
+  "checkpoint_file":"configs/ndmi_class3_epoch_30.pth",
+  "score_thr": 0.7,
+  "CLASSES" : ["Bank", "WashOut", "Landslide", "building", "person"]
+}
