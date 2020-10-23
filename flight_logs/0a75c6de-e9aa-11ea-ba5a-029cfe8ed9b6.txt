@@ -1,1 +1,0 @@
-3a674886-e5e0-11ea-ba5a-159832414448,0a75c6de-e9aa-11ea-ba5a-029cfe8ed9b6,33.204977,126.277719,24.100000381469727,-1.0,{"roll": -1.13, "pitch": -3.61, "yaw": 318.25, "cluster-instance-id": "2", "exif": {"Make": "SONY", "Model": "DSC-RX100M4", "Orientation": 1, "FocalLength": 8.8, "FocalLengthIn35mmFormat": 24}}
