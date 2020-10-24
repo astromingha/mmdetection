@@ -52,11 +52,14 @@ def receive(c_sock):
             imageHeaderLength = 14
             payloadLength -= imageHeaderLength
 
-            payload1 = recvall(c_sock, 60)
-            taskID, frameID, latitude, longitude, altitude, accuracy, jsonDataSize = unpack('<16s16sddffI', payload1)
+            payload = recvall(c_sock, payloadLength)
 
-            jsonData = recvall(c_sock, jsonDataSize)
-            imageBytes = recvall(c_sock, unpack('<I', c_sock.recv(4))[0])
+            taskID, frameID, latitude, longitude, altitude, accuracy, jsonDataSize = unpack('<16s16sddffI', payload[:60])
+            payload_mid = payload[60:]
+            jsonData = payload_mid[:jsonDataSize]
+            payload_tail = payload_mid[jsonDataSize:]
+            imageDataSize = unpack('<I',payload_tail[:4])[0]
+            imageBytes = payload_tail[4:4+imageDataSize]
 
             taskID = uuid.UUID(bytes=taskID)
             frameID = uuid.UUID(bytes=frameID)
