@@ -186,10 +186,10 @@ def server_det_masks(result,
             mask = maskUtils.decode(segms[i]).astype(np.bool)
             poly = [int(j) for j in binary_mask_to_polygon(mask)[0]]
             obj_class = int(labels[i])+1
-            if obj_class == 3 or obj_class == 4 or obj_class == 5:
-                obj_class -= 2
-            else:
-                continue
+            # if obj_class == 3 or obj_class == 4 or obj_class == 5:
+            #     obj_class -= 2
+            # else:
+            #     continue
             polygons.append(poly + [obj_class])
 
             # plabels.append(labels[i].tolist())
