@@ -162,7 +162,6 @@ if __name__ == '__main__':
                 if key.data is None:
                     accept_wrapper(key.fileobj)
                 else:
-                    # service_connection(key, mask, sock_client)
                     service_connection(key, mask, sock_client,
                                        pre_calibrated, angle_threshold * np.pi / 180, ground_height, gsd)
             # Check for a socket being monitored to continue
@@ -170,7 +169,6 @@ if __name__ == '__main__':
                 logger.info('starting connection...')
                 sock_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 client_connection = sock_client.connect_ex((CLIENT_IP, CLIENT_PORT))
-                # client_connection = 1
                 logger.info("Viewer reconnected!")
     except KeyboardInterrupt:
         logger.error("caught keyboard interrupt, exiting")

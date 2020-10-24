@@ -34,8 +34,12 @@ def parse_header(binary_header):
     for domain in domains:
         dt = np.dtype(np.uint16)
         dt = dt.newbyteorder('<')
-        value = zero_fill_right_shift(np.frombuffer(binary_header, dtype=dt)[0] << (16 + domain["offset"]),
+        header = np.frombuffer(binary_header, dtype=dt)
+        if len(header):
+            value = zero_fill_right_shift(header[0] << (16 + domain["offset"]),
                                       32 - domain["length"])
+        else: return None
+
         result.append(value)
 
     return result
@@ -43,31 +47,28 @@ def parse_header(binary_header):
 
 def receive(c_sock):
     headersize = 2
-    binaryHeader = c_sock.recv(headersize)  # Read the length of header
+    if parse_header(c_sock.recv(headersize)) == [1, 17, 34, 68, 1089, 17424]:
+        temp = c_sock.recv(12)
+        timeStamp, payloadLength = unpack('<QI', temp)
+        imageHeaderLength = 14
+        payloadLength -= imageHeaderLength
 
-    while True:
-        if parse_header(binaryHeader) == [1, 17, 34, 68, 1089, 17424]:
-            temp = c_sock.recv(12)
-            timeStamp, payloadLength = unpack('<QI', temp)
-            imageHeaderLength = 14
-            payloadLength -= imageHeaderLength
+        payload = recvall(c_sock, payloadLength)
 
-            payload = recvall(c_sock, payloadLength)
+        taskID, frameID, latitude, longitude, altitude, accuracy, jsonDataSize = unpack('<16s16sddffI', payload[:60])
+        payload_mid = payload[60:]
+        jsonData = payload_mid[:jsonDataSize]
+        payload_tail = payload_mid[jsonDataSize:]
+        imageDataSize = unpack('<I',payload_tail[:4])[0]
+        imageBytes = payload_tail[4:4+imageDataSize]
 
-            taskID, frameID, latitude, longitude, altitude, accuracy, jsonDataSize = unpack('<16s16sddffI', payload[:60])
-            payload_mid = payload[60:]
-            jsonData = payload_mid[:jsonDataSize]
-            payload_tail = payload_mid[jsonDataSize:]
-            imageDataSize = unpack('<I',payload_tail[:4])[0]
-            imageBytes = payload_tail[4:4+imageDataSize]
+        taskID = uuid.UUID(bytes=taskID)
+        frameID = uuid.UUID(bytes=frameID)
+        my_json = jsonData.decode('utf8').replace("'", '"')
+        data = json.loads(my_json)
+        nparr = cv2.imdecode(np.fromstring(imageBytes, dtype='uint8'), 1)
 
-            taskID = uuid.UUID(bytes=taskID)
-            frameID = uuid.UUID(bytes=frameID)
-            my_json = jsonData.decode('utf8').replace("'", '"')
-            data = json.loads(my_json)
-            nparr = cv2.imdecode(np.fromstring(imageBytes, dtype='uint8'), 1)
-
-            return taskID, frameID, latitude, longitude, altitude, data["roll"], data["pitch"], data["yaw"], data["exif"]["Model"], nparr
+        return taskID, frameID, latitude, longitude, altitude, data["roll"], data["pitch"], data["yaw"], data["exif"]["Model"], nparr
 
 
 def send(frame_id, task_id, name, img_type, img_boundary, objects, orthophoto, client):
