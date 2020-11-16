@@ -20,7 +20,7 @@ from logger.MyTimedRotatingFileHandler import MyTimedRotatingFileHandler
 
 
 # ���ϸ� & ���丮
-log_dir = '/home/user/log_JejuSandbox'
+log_dir = './logs'
 filename = log_dir + '/logs.log'
 
 # ������ ������ ����

@@ -14,8 +14,8 @@
     "ground_height": 0.0,
     "gsd": 0
   },
-  "config_file":"configs/ndmi_class3_config.py",
-  "checkpoint_file":"configs/ndmi_class3_epoch_30.pth",
+  "config_file":"configs/cascade_rcnn/cascade_mask_rcnn_x101_64x4d_fpn_1x_coco.py",
+  "checkpoint_file":"tools/logs/latest.pth",
   "score_thr": 0.7,
-  "CLASSES" : ["Bank", "WashOut", "Landslide", "building", "person"]
+  "CLASSES" : ["Bank", "WashOut", "Landslide", "building"]
 }

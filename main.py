@@ -15,7 +15,7 @@ from mmdet.datasets.imgprocess import server_det_bboxes, server_det_masks,server
 import mmcv
 from logger.logger import logger
 from argparse import ArgumentParser
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 sel_server = selectors.DefaultSelector()
 sel_client = selectors.DefaultSelector()
 
@@ -78,8 +78,8 @@ def service_connection(key_s, mask_s, sock_c, pre_calibrated, angle_threshold, g
                     inference_world = georef_inference(inference_px[:-1], img_rows, img_cols, pixel_size,
                                                        my_drone.focal_length, adjusted_eo, R_CG, ground_height)
                     inference_metadata.append(
-                        # create_inference_metadata(inference_px[-1], str(inference_px), inference_world))
-                        create_inference_metadata(inference_px[-1], inference_px[:-1], inference_world))
+                        create_inference_metadata(inference_px[-1], str(inference_px), inference_world))
+                        # create_inference_metadata(inference_px[-1], inference_px[:-1], inference_world))
             else:
                 logger.debug(object_coords)
                 inference_metadata = []
@@ -97,17 +97,14 @@ def service_connection(key_s, mask_s, sock_c, pre_calibrated, angle_threshold, g
             sock_s.close()
 
 def inference_module_init(config_file, checkpoint_file):
-    model = init_detector(config_file, checkpoint_file, device='cuda:0')
-    cfg = mmcv.Config.fromfile(config_file)
-    model.cfg.data.val.pipeline = cfg.test_pipeline
-    model.cfg.data.test.pipeline = cfg.test_pipeline
-    return model
+    # model = init_detector(config_file, checkpoint_file, device='cuda:0')
+    return init_detector(config_file, checkpoint_file, device='cuda:1')
 
 
 if __name__ == '__main__':
 
     parser = ArgumentParser(description="Configuration")
-    parser.add_argument("--config", help="the name of config file", type=str, default='sandbox',
+    parser.add_argument("--config", help="the name of config file", type=str, default='ndmi',
                         choices=['ndmi','sandbox','knps'])
     args = parser.parse_args()
 
